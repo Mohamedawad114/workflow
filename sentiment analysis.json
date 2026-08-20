@@ -1,0 +1,230 @@
+{
+  "name": "sentiment analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "your review",
+        "formDescription": "this form for providing your review",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "what's your name? ",
+              "placeholder": "ibrahim sarhan",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "your review",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -544,
+        -112
+      ],
+      "id": "17720878-01ab-481b-8b91-2260a29ebdf0",
+      "name": "On form submission",
+      "webhookId": "799bc5ed-061a-4f52-a030-765673057daa"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json[\"your review\"] }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "your are review analyzer , analyze the customer's review  then return  his review impression in one word from this [ \"positive \" , \"negative \" , \"nature\"],  "
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -160,
+        -32
+      ],
+      "id": "d9bc77d5-2781-4ade-9bc1-74830bf76ea2",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        224
+      ],
+      "id": "345f71c6-f91d-4b01-94e3-b9833893ecbb",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "pEiWSCoXaSKLmHKg",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appdRLBbQm5gOD2Hr",
+          "mode": "list",
+          "cachedResultName": "sheet 1",
+          "cachedResultUrl": "https://airtable.com/appdRLBbQm5gOD2Hr"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblcmKaEQmMB0vpYR",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appdRLBbQm5gOD2Hr/tblcmKaEQmMB0vpYR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review": "={{ $json.text }}",
+            "Name": "={{ $json[\"what's your name? \"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review",
+              "displayName": "review",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -224
+      ],
+      "id": "3874ab53-48c0-4ba3-93dc-15d4926634b6",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "9SF3k3zBcckMr3a3",
+          "name": "Airtable Personal Access Token account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        128,
+        -192
+      ],
+      "id": "8387b5dd-3cc6-4911-b7b6-b1c89081a798",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "178a8637-fc9a-4785-927b-51436b650e9c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "xcZZaiYHZpsofUTP",
+  "tags": []
+}
