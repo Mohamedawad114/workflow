@@ -1,0 +1,291 @@
+{
+  "name": "ai automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "user-cv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -48
+      ],
+      "id": "a1c8be05-b9bd-4e04-8a6b-d4f967be6328",
+      "name": "Webhook",
+      "webhookId": "1d076143-3e5e-4a8c-ba0d-7d50de7acc24"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Act as an expert ATS system and recruiter. \nAnalyze the provided CV correctly and return a SINGLE raw, valid JSON object containing two main objects: \"json_data\" and \"email_details\".\n\nCRITICAL INSTRUCTIONS:\n- Return ONLY pure, raw JSON. \n- Do NOT wrap the JSON inside markdown code blocks (e.g., do NOT use ```json or ``\n`).\nespond ONLY with a raw JSON object. Do not wrap the JSON in markdown code blocks like ```json.\"\n- Do NOT add any introductory or concluding text, explanations, or notes.\n- Ensure all quotes inside HTML strings are properly escaped.\n\nreturn JSON Structure Schema:\n{\n  \"json_data\": {\n    \"name\": \"string\",\n    \"atsScore\": number,\n    \"summary\": \"string\",\n    \"position\": \"string\",\n    \"strengths\": \"string\",\n    \"weaknesses\": string\",\n    \"email\": \"string\"\n  },\n  \"email_details\": {\n    \"subject\": \"string\",\n    \"body\": \"string (valid HTML code containing p, h2, etc.)\"\n  }\n} "
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        0,
+        -128
+      ],
+      "id": "a671b8cc-b6dd-4824-9048-54afb92d1ba9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        128
+      ],
+      "id": "67c9283d-160c-4bc5-8a55-e3b73d8a5f87",
+      "name": "Groq Chat Model",
+      "notesInFlow": false,
+      "credentials": {
+        "groqApi": {
+          "id": "pEiWSCoXaSKLmHKg",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appBjICJgSd0aXYZA",
+          "mode": "list",
+          "cachedResultName": "customer /Ai Agent",
+          "cachedResultUrl": "https://airtable.com/appBjICJgSd0aXYZA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAYyQM9x1yBCXAh",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appBjICJgSd0aXYZA/tblAYyQM9x1yBCXAh"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.json_data.name }}",
+            "position": "={{ $json.json_data.position }}",
+            "summary": "={{ $json.json_data.summary }}",
+            "strength": "={{ $json.json_data.strengths }}",
+            "weakness": "={{ $json.json_data.weaknesses }}",
+            "ats score": "={{ $json.json_data.atsScore }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "weakness",
+              "displayName": "weakness",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ats score",
+              "displayName": "ats score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "strength",
+              "displayName": "strength",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -240
+      ],
+      "id": "b607b244-02aa-4aba-ac43-58e8c29a1e99",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "9SF3k3zBcckMr3a3",
+          "name": "Airtable Personal Access Token account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.json_data.email }}",
+        "subject": "={{ $json.email_details.subject }}",
+        "message": "={{ $json.email_details.body }}",
+        "options": {
+          "senderName": "CV Analyze"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        144
+      ],
+      "id": "66ab518f-f171-462e-bdb4-63d4723add43",
+      "name": "Send a message",
+      "webhookId": "2bf181d8-b809-4d85-9c33-cc6067042c33",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yq33k9TX0THhP3fr",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// الكود بيستخرج النص من field الـ text وبيحوله لـ JSON Object حقيقي\nconst rawText =$input.first().json.text ;\n\n// تنظيف النص لو الموديل رجع markdown ```json\nconst cleanJsonString = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n\n// تحويل النص إلى Object مفكوك\nconst parsedData = JSON.parse(cleanJsonString);\n\nreturn [\n  {\n    json: parsedData\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -96
+      ],
+      "id": "37e11bbc-89f5-462c-8547-bbffc0e860a3",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "81db774f-5c00-40f3-bea9-9031bafcdb5b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "m7Ifck5rZ2X0X8KY",
+  "tags": []
+}
