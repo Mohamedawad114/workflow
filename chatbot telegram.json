@@ -1,0 +1,216 @@
+{
+  "name": "chatbot telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -736,
+        -160
+      ],
+      "id": "44fad9b7-8fbc-4485-a6d1-dd9d3c9e471d",
+      "name": "Telegram Trigger1",
+      "webhookId": "506ed85f-1c47-4b02-bf59-482109f537eb",
+      "credentials": {
+        "telegramApi": {
+          "id": "FbrHDiK4uq8319A8",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant, search on google before response  and not send html  text only",
+          "tracingMetadata": {
+            "values": [
+              {
+                "key": "chat id",
+                "type": "numberValue",
+                "numberValue": "={{ $json.message.from.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -240,
+        -304
+      ],
+      "id": "acc0b515-58b3-41ab-a375-2a3c153db4a7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.6-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        0
+      ],
+      "id": "95d73b67-c577-4f0d-a296-a90894ac81b6",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "pEGzE1S7nepUoSgB",
+          "name": "Groq account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the live web for real-time news, football match schedules, scores, and current events.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "tavilyApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        32,
+        -48
+      ],
+      "id": "c6b38cec-08e7-4fdd-af1c-49a6909b00d1",
+      "name": "HTTP Request1",
+      "credentials": {
+        "tavilyApi": {
+          "id": "0O0WBgwPxOwhSwV6",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.text }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -160,
+        -48
+      ],
+      "id": "bd37c7c9-656c-4edd-a2f7-d769a2951046",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger1').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        -288
+      ],
+      "id": "4adaa79f-3cd0-420e-9891-1dc50bc5afd5",
+      "name": "Send a text message",
+      "webhookId": "8c767f02-f358-4f33-8099-34b4a8de5376",
+      "credentials": {
+        "telegramApi": {
+          "id": "FbrHDiK4uq8319A8",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "84e89411-d510-4725-868f-efa5574f66bf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "2SyiNXO3kzrSAKqG",
+  "tags": []
+}
