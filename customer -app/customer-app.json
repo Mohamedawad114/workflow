@@ -1,0 +1,170 @@
+{
+  "name": "customer-app",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "qwen/qwen3.6-27b",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        400
+      ],
+      "id": "2f5126ca-c5a6-4459-8d47-02b895d5c265",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "ngB7qqDbI3KBnS4c",
+          "name": "Groq account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are an expert, friendly, and professional Customer Support Assistant for [Travalo].\n\nYOUR ROLE & GOALS:\n1. Help users with questions related strictly to [booking hotels].\n2. Provide concise, accurate, and helpful answers in the same language the user speaks (Arabic or English).\n\nSCOPE & BOUNDARIES (STRICT):\n- You MUST ONLY answer questions directly related to our app, products, orders, shipping, and account management.\n- If a user asks an out-of-scope question (e.g., general knowledge, math, coding, politics, weather, recipes, or other unrelated topics), politely decline and redirect them back to our support topics.\n  Example polite refusal (Arabic): \"عذراً، أنا هنا لمساعدتك في كل ما يخص خدماتنا وطلباتك فقط. كيف يمكنني مساعدتك اليوم بخصوص حسابك أو مشترياتك؟\"\n\nCONVERSATION CONTEXT:\n- Keep track of the user's previous messages in this session to provide smooth, context-aware assistance.\nresponse : like {\"reply\":...}\n",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -176,
+        -64
+      ],
+      "id": "d127ebd5-a408-4bcc-b359-041d99632dc3",
+      "name": "AI Agent",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the live web for real-time news, football match schedules, scores, and current events.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "tavilyApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $('When chat message received').item.json.chatInput }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        176,
+        432
+      ],
+      "id": "6e196b0a-454d-46da-bcf7-4bddc0c806bf",
+      "name": "HTTP Request",
+      "credentials": {
+        "tavilyApi": {
+          "id": "0O0WBgwPxOwhSwV6",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ec4d4d46-b55c-4791-bca5-778612e8f75b",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -624,
+        -16
+      ],
+      "id": "19674042-6043-4577-8857-1cce7d4ede5f",
+      "name": "Webhook",
+      "webhookId": "ec4d4d46-b55c-4791-bca5-778612e8f75b"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        16,
+        384
+      ],
+      "id": "2ec7f492-cad8-4b10-9a4a-2f3faf988059",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "760b4d9d-03f5-49db-aea4-f2c24de857a2",
+  "meta": {
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "PHvlwdisgqKotLkP",
+  "tags": []
+}
