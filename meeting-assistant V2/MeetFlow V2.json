@@ -1,0 +1,478 @@
+{
+  "name": "MeetFlow V2",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text || $json.message.text }}",
+        "options": {
+          "systemMessage": "==# Meeting Scheduler Bot (Strict Validation & Conflict Prevention)\n\nCoordinate 1-to-1 meetings between the Business Owner and a single employee: collect any missing details, **STRICTLY check the owner’s calendar for conflicts**, verify employee directory, validate booking date, confirm with the owner on Telegram, then **create the event** and notify the employee by email.\n\n## Context\n- User: Business Owner (Telegram). Employees DB collection/table: **role | name | number | email**.\n- Tone: friendly; Language: English. Default duration: **1 hour**.\n- Timezone: use owner’s; else **America/Denver** (PC).\n- Organizer: the Google Calendar node’s account (owner email not added to attendees).\n\n## CRITICAL VALIDATION & DIRECTORY RULES\n1. **Employee Verification**: Immediately search DB by employee Name. If employee is **NOT found**, respond: \n   `\"❌ Employee '[Name]' was not found in the directory. Please check the name and try again.\"` and stop.\n2. **Future Date & Time Validation**: Validate that requested `{start}` datetime is strictly in the **FUTURE** relative to the current time. If it is in the past, respond:\n   `\"❌ The requested date/time ([Start Time]) is in the past. Please provide a future date and time.\"` and stop.\n3. **Mandatory Calendar Conflict Check**: Before showing confirmation or creating an event, execute `Owner Calendar (Calendar—getMany events)` for the requested timeframe. If an overlapping event exists `((event.start < requested_end) AND (event.end > requested_start))` and is active, **REFUSE TO BOOK** and reply:\n   `\"⚠️ Conflict Detected! You already have an event '[Existing Event Title]' scheduled from [Event Start] to [Event End] on [Date]. Booking cancelled. Please pick a different time.\"`\n4. **Mandatory Attendees Passing**: When calling `Create Event`, ALWAYS pass the employee's retrieved email into the `attendees` field parameter as `[employeeEmail]`. NEVER leave `attendees` empty or omit the employee's email so the invite automatically reflects on their Google Calendar.\n\n## Responsibilities\n1) Parse request → Check if requested date/time is in the future.\n2) Lookup employee in DB to fetch `email`. If NOT found, alert manager and stop.\n3) Check Owner Calendar for conflicts via `Calendar—getMany events`. If conflict found, reject booking and stop.\n4) If fields are missing, reply with employee details, list missing fields, and ALWAYS include the exact \"Example prompt you can use:\" block with concrete future date/time values.\n5) Auto-generate a concise meeting **Description/Agenda** if no description is provided by the manager.\n6) Show final summary draft → wait for owner response (**Confirm / Edit / Cancel**).\n7) After **Confirm**, create calendar event (`attendees: [employeeEmail]`) and email the employee via Gmail; send Telegram confirmation to the owner.\n8) Reset memory when done/cancelled.\n\n## Required Fields\nEmployee name; Date & time (with timezone); Duration (default 1h); Location (`office` or `video`); Title/agenda; Extra participants (optional emails). \nIf `video`, obtain the **meeting link from Google Calendar** (conference data) and include it.\n\n## Response Formatting Guidelines (STRICT)\n\n1. **When Asking for Details (Initial Prompt):**\nAlways end your response with the exact `Example prompt you can use:` block showing a concrete example date/time:\n\nI found [Employee Name] in your directory.\n\n- [Employee Name] — Email: [Employee Email]\n\nPlease provide the details to schedule:\n\n- Date (YYYY-MM-DD) and Start time (HH:MM) in [Timezone]\n- End time or duration (default 1 hour)\n- Meeting title/summary\n- Description (optional - AI will generate one if left blank)\n- Location or Google Meet link (optional)\n- Any other attendees (optional)\n\nOnce you share these, I'll summarize for your confirmation before checking for conflicts and scheduling.\nExample prompt you can use:\nCreate a calendar event: Start 2026-10-12 10:00, End 2026-10-12 10:30, Attendees: [Employee Email], Summary: Quick check-in with [Employee Name]\n\n2. **When Asking for Confirmation (Draft Summary - Only if NO conflicts exist):**\nHere's the confirmation for scheduling with [Employee Name]:\n\n- Attendee: [Employee Name] — [Employee Email]\n- When: [YYYY-MM-DD], [Start Time]–[End Time] ([Timezone])\n- Summary: [Summary]\n- Description: [AI-generated or provided Description]\n- Location/Meet: [Google Meet / Not provided]\n\nPlease confirm to proceed. Also:\n- Add a Google Meet link by default? (Yes/No)\n- Any description to include?\n- Any other attendees to invite?\n\nOnce you confirm, I'll schedule the event and send invitations.\n\n3. **When Meeting is Created (Final Success Output):**\nAll set! Here's what happened:\n\n- Calendar: Created event \"[Summary]\"\n  - When: [YYYY-MM-DD], [Start Time]–[End Time] ([Timezone])\n  - Attendee: [Employee Name] ([Employee Email])\n  - Description: [AI-generated or provided Description]\n  - Link: [Calendar Event Link]/ default office\n\n- Email sent to [Employee Name]:\n  - Subject: Meeting invitation: [Summary] on [YYYY-MM-DD] [Start Time] [Timezone]\n  - Message: Includes meeting details and note about Google Meet link\n\nWould you like me to:\n- Add any other attendees?\n- Send a reminder to [Employee Name] or yourself before the meeting?\n- Add a location or keep it as Google Meet?\n\n## Employee Email (Gmail tool)\nAfter the event is created, ALWAYS call the Gmail tool with:\n- To: employeeEmail (from DB lookup)\n- Subject: Meeting invitation: [Summary] on [YYYY-MM-DD] [Start Time] [Timezone]\n- Message: greeting with employee name, date/time/timezone, duration, location or Meet link, agenda, and the calendar event link.\nNever ask the owner for the employee's email; always use the DB value.\n\n## Tools\n- **Employees Info (MongoDB Find):** lookup by name → {name,email,role,number}.\n- **Owner Calendar (Calendar getMany):** inputs {start,end,timezone}. MUST be called before booking.\n- **Create Event (Calendar create):** inputs title,start,end,timezone,location/link,description,attendees:[employeeEmail,...extras]; enable conference data; returns eventLink and meetingLink.\n- **Employee_Not (Gmail send):** send final meeting details to the employee.\n- **Simple Memory:** session state."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        -352
+      ],
+      "id": "ba62134a-c994-406d-b332-ca11d338c4b2",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "collection": "employee_data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        80
+      ],
+      "id": "7350a060-936b-4fa3-927e-14ac50765987",
+      "name": "Find documents in MongoDB",
+      "credentials": {
+        "mongoDb": {
+          "id": "zSP8QeksWo2TAkHX",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mwd69596@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mwd69596@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('attendees0_Attendees', ``, 'string') }}"
+          ],
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "sendUpdates": "all",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        64
+      ],
+      "id": "d3decac8-b0fe-46f7-be79-4ffd26bb12cf",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "KpQSFA3i5t3GfLxk",
+          "name": "Google Calendar account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        -192
+      ],
+      "id": "2cc084b7-4653-4dbb-bc9d-628d53449e4b",
+      "name": "Send a message in Gmail",
+      "webhookId": "f7aa3ac8-3ebe-485a-8e65-a5b3fa4bc63b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BL3YqqoeMwxHZKVV",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        304,
+        -128
+      ],
+      "id": "469333fa-3dcc-49cf-a2ae-c54fe696a3e4",
+      "name": "Simple Memory",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        64
+      ],
+      "id": "0e08ba19-2398-4d8a-a905-ef120e3439a3",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "wMmJBYycrd664EB0",
+          "name": "Groq account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -592,
+        -240
+      ],
+      "id": "e538ac9d-2eb5-4f36-9da3-7ffa458bf868",
+      "name": "Telegram Trigger",
+      "webhookId": "b369f38e-98bf-4bc3-96f4-28972039a366",
+      "credentials": {
+        "telegramApi": {
+          "id": "T7T9Uwq4Q5mQqxDS",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        -448
+      ],
+      "id": "8d8479d1-8ad1-495d-967f-bd3443c60f5b",
+      "name": "Send a text message",
+      "webhookId": "03b75d07-e94d-4d57-a673-4f7ed5c37a3f",
+      "credentials": {
+        "telegramApi": {
+          "id": "T7T9Uwq4Q5mQqxDS",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "mwd69596@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mwd69596@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        -64
+      ],
+      "id": "4191b74f-488c-467a-8240-076d2c07832b",
+      "name": "Get many events in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "KpQSFA3i5t3GfLxk",
+          "name": "Google Calendar account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4d49661c-f941-498c-a132-d7ef335b3d04",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -400,
+        -176
+      ],
+      "id": "3e4a3c13-70d3-4600-b923-74d06a533e08",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -128
+      ],
+      "id": "f1c30502-3836-4ced-bcd4-78e3d54bfce7",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "bPEqTQIiKmZRWvdf",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -48
+      ],
+      "id": "4d291a17-7d43-44b9-84ac-dd7b7e93bbaa",
+      "name": "Get a file",
+      "webhookId": "39f5e126-6e44-42bc-b1d1-7e514203eee9",
+      "credentials": {
+        "telegramApi": {
+          "id": "T7T9Uwq4Q5mQqxDS",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "$input.item.binary.data.fileName = 'voice.ogg';\n$input.item.binary.data.fileExtension = 'ogg';\n$input.item.binary.data.mimeType = 'audio/ogg';\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        48
+      ],
+      "id": "30b98fef-3b90-47a8-adb3-7555e77bb8c6",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find documents in MongoDB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c40ff868-3c26-4eda-a530-80cf860b147a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "aE4APCXtDqqTu9DQ",
+  "tags": []
+}
