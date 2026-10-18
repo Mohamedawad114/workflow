@@ -3,7 +3,8 @@
 <p align="center">
   <img src="https://n8n.io/favicon.ico" width="120" alt="n8n Logo">
 </p>
-## Production-Grade n8n AI & Automation Workflows
+# Production-Grade n8n AI & Automation Workflows
+
 
 A centralized repository containing production-grade **n8n workflows**, focusing on Multi-Agent architectures, Retrieval-Augmented Generation (RAG), Autonomous AI Assistants, and Smart Business Automations. 
 
