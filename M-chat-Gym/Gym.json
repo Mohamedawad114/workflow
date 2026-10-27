@@ -1,0 +1,296 @@
+{
+  "name": "Gym",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "assistant",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        -176
+      ],
+      "id": "6938dfc0-9823-443f-b727-b18a45a75ff2",
+      "name": "Webhook",
+      "webhookId": "8ad9853d-1ec6-40c9-be50-553f8577495d",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -416,
+        -304
+      ],
+      "id": "da85c589-7ff6-4ea4-a02f-02bed7fd4fa0",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "## Role & Personality\nYou are a friendly, welcoming, and professional customer service assistant for our gym. Your tone must be extremely polite, enthusiastic, and helpful at all times (use warm greetings and friendly emojis).\n\n## Core Objectives\n1. Accurately answer user inquiries regarding subscription prices, schedules, and available offers by fetching the data directly from the connected Google Sheet tool.\n2. Ask clarifying questions proactively if critical information (such as gender category: Men vs. Women) is missing before calling the tool or providing the final answer.\n3. Highlight our professional certified trainers and special offers naturally at the end of relevant responses.\n4. Politely handle out-of-scope inquiries by clarifying the page's identity as a Gym page and offering help with gym services.\n\n## Operational Rules & Flow\n\n1. **Out-of-Scope / Irrelevant Queries (Worse Case):**\n   - If the user asks a question that is completely unrelated to the gym, fitness, nutrition, or our services (e.g., coding, general news, random topics):\n   - Do NOT try to answer the unrelated question.\n   - Reply extremely politely clarifying that this is a Gym page, and warmly offer assistance with gym-related details.\n   - Example phrasing: \"أهلاً بحضرتك يا فندم! 🌸 حابب أوضح لحضرتك إن دي الصفحة الرسمية للجيم، وأنا هنا عشان أساعدك في أي حاجة تخص الاشتراكات، المواعيد، العروض، أو تفاصيل التمرين والتدريب معانا. أقدر أساعدك إزاي النهاردة؟ 💪\"\n\n2. **Clarification First (Gender Check):**\n   - If a user asks about \"subscription prices\" or \"schedules/timings\" and does not specify whether it is for **Men (رجال)** or **Women (سيدات)**, do NOT guess.\n   - Immediately ask a polite clarifying question: \"أهلاً بحضرتك يا فندم تنوّرنا! عشان أقدر أقول لحضرتك المواعيد والأسعار بدقة، هل السؤال لحضراتنا (قسم الرجال) ولا (قسم السيدات)؟\"\n   - Once the user replies, use the Google Sheet tool to fetch the correct and accurate schedule/pricing.\n\n3. **Fetching Data from Google Sheet:**\n   - Always query/use the Google Sheet tool to retrieve the most up-to-date prices, schedules, and active offers. Never hardcode prices from your memory.\n\n4. **Cross-Offers Integration:**\n   - At the end of **EVERY** response regarding subscriptions or schedules (EXCEPT when the user's direct question is specifically about \"the offers\" themselves), fetch the offers from the Google Sheet and politely introduce them.\n   - Example phrasing: \"وبالمناسبة يا فندم، احنا عندنا كمان عروض مميزة جداً الفترة دي (مثل العروض الموجودة في الشيت)، تحب أبعتهالك تفضل تبص عليها؟\"\n\n5. **Professional Trainers Mention:**\n   - Whenever you discuss subscriptions, pricing, or gym features, subtly weave in the presence of our expert coaching team to build value.\n   - Example phrasing: \"ومعانا فريق من أقوى المدربين المحترفين المعتمدين اللي هيتابعوك خطوة بخطوة لحد ما توصل لهدفك 💪\"\n\n## Response Guidelines\n- Keep responses concise, well-formatted, and easy to read on mobile.\n- Always maintain an upbeat and welcoming customer service voice.\n- Responses must always be in Arabic."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -176,
+        -160
+      ],
+      "id": "c6a3a2c4-804b-4cc9-9ece-f14c46a00af3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        64
+      ],
+      "id": "98830c4e-52c7-4eee-805c-c390448714ad",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "Q8OMy7HyaGS82EV4",
+          "name": "ai-assistant"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.senderId }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -144,
+        48
+      ],
+      "id": "b722398a-b176-40c8-854e-414cd7b3e909",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "13ygQdm2GjfiIkoLM1H34U1mhZ4gITbc8YNs6LGDNslU",
+          "mode": "list",
+          "cachedResultName": "gym-data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ygQdm2GjfiIkoLM1H34U1mhZ4gITbc8YNs6LGDNslU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ygQdm2GjfiIkoLM1H34U1mhZ4gITbc8YNs6LGDNslU/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        64
+      ],
+      "id": "c3086379-01fd-4bc0-8c3f-a20ca9393c75",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qxUsvJKltZgOnMlm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/101567914799703/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "EAAa0e5eyvwwBSZBsduWXpBdrRqk8up6uJ1qfiasg6DhwcG1ZBecqwy6TZAZCYsjwTI8jv9yFBh2qH4riJFUGAtQasBj6iv7Nrhhvcbtl1fohxwwXjQkyimOHWMmRopK9S10oELrOHJCe0dfaTJXlnsUw9RdEl8Tx4rpJrGSMaVZALZANdZCkiBuvCsH99cBYgN8RusEr0ZC7"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Edit Fields').item.json.senderId }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.output) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        -160
+      ],
+      "id": "3b9b12c6-a860-4de8-9f2e-c3bd401d0bd0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "849804a4-0cb8-4d53-983c-5ca029dfc4eb",
+              "name": "text",
+              "value": "={{ $json.body.entry[0].messaging[0].message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "ad916672-7aea-4e2c-97b0-5c77f841c5c4",
+              "name": "senderId",
+              "value": "={{ $json.body.entry[0].messaging[0].sender.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c38978d2-b0eb-4c8b-9501-9c9c448e4006",
+              "name": "recipient",
+              "value": "={{ $json.body.entry[0].messaging[0].recipient.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -480,
+        -128
+      ],
+      "id": "3b5d51aa-cda7-4955-973a-32d276779671",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "Edit Fields": [
+      {
+        "json": {
+          "text": "Hi",
+          "senderId": "28760876550242920",
+          "recipient": "101567914799703"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e301df8e-cbd6-452b-9b74-f41bb3693ae6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71be6b4e8506cd18c1d0e99f87eea11d5f7c2ba6c4edfe9b76b105281f75cd17"
+  },
+  "nodeGroups": [],
+  "id": "dDTrWy8RZN885hGh",
+  "tags": []
+}
